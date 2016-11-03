@@ -6,12 +6,18 @@ import ioswarm.vertx.ext.es.cassandra.CassandraESVerticle;
 
 public class Example extends CassandraESVerticle<JsonObject> {
 
+	private final String id;
+	
+	public Example(String id) {
+		this.id = id;
+	}
+	
 	@Override
 	public String scope() { return "vehicle"; }
 	
 	@Override
 	public String id() {
-		return "TEST";
+		return id;
 	}
 
 	@Override
@@ -35,7 +41,13 @@ public class Example extends CassandraESVerticle<JsonObject> {
 	public static void main(String[] args) throws Exception {
 		Vertx vertx = Vertx.vertx();
 		
-		vertx.deployVerticle(new Example());
+		long start = System.currentTimeMillis();
+		vertx.deployVerticle(new Example("TEST"));
+		System.out.println("TEST started in "+(System.currentTimeMillis()-start)+" ms");
+		
+		start = System.currentTimeMillis();
+		vertx.deployVerticle(new Example("TEST2"));
+		System.out.println("TEST2 started in "+(System.currentTimeMillis()-start)+" ms");
 	}
 	
 }
