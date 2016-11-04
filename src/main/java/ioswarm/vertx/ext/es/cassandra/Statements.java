@@ -17,5 +17,7 @@ public class Statements {
 			+ "WHERE id = ? "
 			+ "ORDER BY event_date ASC";
 	
+	public static final String INSERT_EVENT = 
+			"INSERT INTO %1$s.%2$s (id, event_date, command, content) values (?, ?, ?, ?)";
 	
 }

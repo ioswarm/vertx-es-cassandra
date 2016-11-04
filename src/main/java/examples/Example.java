@@ -1,7 +1,10 @@
 package examples;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
+import ioswarm.vertx.ext.es.Event;
+import ioswarm.vertx.ext.es.EventHandler;
 import ioswarm.vertx.ext.es.cassandra.CassandraESVerticle;
 
 public class Example extends CassandraESVerticle<JsonObject> {
@@ -21,19 +24,28 @@ public class Example extends CassandraESVerticle<JsonObject> {
 	}
 
 	@Override
-	public JsonObject persist(JsonObject t) throws Exception {
-		// TODO Auto-generated method stub
-		return null;
+	public JsonObject unmarshall(byte[] data) {
+		JsonObject o = new JsonObject();
+		o.readFromBuffer(0, Buffer.buffer(data));
+		return o;
+	}
+	
+	@Override
+	public byte[] marshall(JsonObject o) {
+		if (o == null) return new byte[0];
+		Buffer b = Buffer.buffer();
+		o.writeToBuffer(b);
+		return b.getBytes();
 	}
 
 	@Override
-	public void recover(JsonObject t) {
+	public void recover(Event<JsonObject> t) {
 		// TODO Auto-generated method stub
 		
 	}
 
 	@Override
-	public void snapshot(JsonObject t) throws Exception {
+	public void snapshot() throws Exception {
 		// TODO Auto-generated method stub
 		
 	}
@@ -48,6 +60,12 @@ public class Example extends CassandraESVerticle<JsonObject> {
 		start = System.currentTimeMillis();
 		vertx.deployVerticle(new Example("TEST2"));
 		System.out.println("TEST2 started in "+(System.currentTimeMillis()-start)+" ms");
+		
+		Thread.sleep(5000l);
+		
+		EventHandler<JsonObject> handler = new EventHandler<JsonObject>(vertx, "vehicle");
+		handler.send("insert", "TEST", new JsonObject().put("message", "ping TEST"));
+		
 	}
 	
 }
