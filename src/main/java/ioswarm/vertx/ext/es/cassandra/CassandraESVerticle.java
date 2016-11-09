@@ -19,7 +19,7 @@ public abstract class CassandraESVerticle<T> extends AbstractESVerticle<T> {
 		return new Event<T>(o.getString("id"), o.getInstant("event_date"), o.getString("command"), unmarshall(o.getBinary("content")));
 	}
 	
-	public JsonObject config() { return new JsonObject().put("keyspace", "ioswarm"); }
+	public JsonObject config() { return new JsonObject().put("keyspace", "ioswarm"); } // TODO implement 
 	
 	public CassandraClient client() { return client(config()); }
 	public CassandraClient client(JsonObject config) { return CassandraClient.createShared(vertx, config, scope()); }
@@ -36,8 +36,8 @@ public abstract class CassandraESVerticle<T> extends AbstractESVerticle<T> {
 			client.query(String.format(Statements.SELECT_EVENTS, opt.getString("keyspace", "ioswarm"), scope().toUpperCase()), new JsonArray().add(id()), result -> {
 				if (result.succeeded()) {
 					for (JsonObject o : result.result()) {
-						System.out.println(o.encode());
 						try {
+							info("call recovery");
 							recover(createEvent(o));
 						} catch(Exception e) {
 							e.printStackTrace();
@@ -57,7 +57,7 @@ public abstract class CassandraESVerticle<T> extends AbstractESVerticle<T> {
 		PreparedStatement pstmt = client.session().prepare(String.format(Statements.INSERT_EVENT, opt.getString("keyspace", "ioswarm"), scope().toUpperCase()));
 		BoundStatement bstmt = pstmt.bind();
 		bstmt.setString("id", evt.getId())
-			.setTimestamp("event_date", Date.from(evt.getEventData()))
+			.setTimestamp("event_date", Date.from(evt.getEventDate()))
 			.setString("command", evt.getCommand())
 			.setBytes("content", ByteBuffer.wrap(marshall(evt.getContent())));
 		
@@ -65,5 +65,6 @@ public abstract class CassandraESVerticle<T> extends AbstractESVerticle<T> {
 		
 		return evt;
 	}
+	
 
 }
