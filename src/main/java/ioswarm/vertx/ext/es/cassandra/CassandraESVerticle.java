@@ -6,6 +6,8 @@ import java.util.Date;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigFactory;
 
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonArray;
@@ -22,7 +24,14 @@ public abstract class CassandraESVerticle<T> extends AbstractESVerticle<T> {
 		return new Event<T>(o.getString("id"), o.getInstant("event_date"), o.getString("command"), unmarshall(o.getBinary("content")));
 	}
 	
-	public JsonObject config() { return new JsonObject().put("keyspace", "ioswarm"); } // TODO implement 
+	public JsonObject config() {
+		JsonObject cfg = new JsonObject().put("keyspace", "ioswarm").put("host", "localhost");
+		Config conf = ConfigFactory.load().getConfig("ioswarm.eventsourcing.cassandra");
+		if (conf.hasPath("hosts")) cfg.put("hosts", conf.getString("hosts"));
+		else if (conf.hasPath("host")) cfg.put("host", conf.getString("host"));
+		if (conf.hasPath("keyspace")) cfg.put("keyspace", conf.getString("keyspace"));
+		return  cfg;
+	}
 	
 //	public CassandraClient client() { return client(config()); }
 //	public CassandraClient client(JsonObject config) { return CassandraClient.createShared(vertx, config, scope()); }
@@ -48,19 +57,22 @@ public abstract class CassandraESVerticle<T> extends AbstractESVerticle<T> {
 //					e.printStackTrace();
 //				}
 //			}
-			client.query(String.format(Statements.SELECT_EVENTS, opt.getString("keyspace", "ioswarm"), scope().toUpperCase()), new JsonArray().add(id()), result -> {
-				if (result.succeeded()) {
-					for (JsonObject o : result.result()) {
-						try {
-							info("call recovery");
-							recover(createEvent(o));
-						} catch(Exception e) {
-							e.printStackTrace();
+			if (res.succeeded())
+				client.query(String.format(Statements.SELECT_EVENTS, opt.getString("keyspace", "ioswarm"), scope().toUpperCase()), new JsonArray().add(id()), result -> {
+					if (result.succeeded()) {
+						for (JsonObject o : result.result()) {
+							try {
+								info("call recovery");
+								recover(createEvent(o));
+							} catch(Exception e) {
+								e.printStackTrace();
+							}
 						}
-					}
-					startFuture.complete();
-				} else startFuture.fail(result.cause()); //result.cause().printStackTrace(); // TODO log
-			});
+						startFuture.complete();
+					} else startFuture.fail(result.cause()); //result.cause().printStackTrace(); // TODO log
+				});
+			else 
+				error("Error while initial CassandraES "+getClass().getName()+".", res.cause());
 		});
 //		client.session().execute(String.format(Statements.CREATE_TABLE, opt.getString("keyspace", "ioswarm"), scope().toUpperCase()));
 //		for (JsonObject o : client.query(String.format(Statements.SELECT_EVENTS, opt.getString("keyspace", "ioswarm"), scope().toUpperCase()), new JsonArray().add(id()))) {
