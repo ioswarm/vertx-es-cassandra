@@ -60,9 +60,9 @@ public abstract class CassandraESVerticle<T> extends AbstractESVerticle<T> {
 			if (res.succeeded())
 				client.query(String.format(Statements.SELECT_EVENTS, opt.getString("keyspace", "ioswarm"), scope().toUpperCase()), new JsonArray().add(id()), result -> {
 					if (result.succeeded()) {
+						info("call recovery id: "+scope()+"."+id()+" for "+result.result().size()+" events.");
 						for (JsonObject o : result.result()) {
 							try {
-								info("call recovery");
 								recover(createEvent(o));
 							} catch(Exception e) {
 								e.printStackTrace();
