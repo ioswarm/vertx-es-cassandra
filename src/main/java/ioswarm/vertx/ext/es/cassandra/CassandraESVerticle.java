@@ -102,6 +102,7 @@ public abstract class CassandraESVerticle<T> extends AbstractESVerticle<T> {
 		
 		PreparedStatement pstmt = client.session().prepare(String.format(Statements.INSERT_EVENT, opt.getString("keyspace", "ioswarm"), scope().toUpperCase()));
 		BoundStatement bstmt = pstmt.bind();
+		
 		bstmt.setString("id", evt.getId())
 			.setTimestamp("event_date", Date.from(evt.getEventDate()))
 			.setString("command", evt.getCommand())
