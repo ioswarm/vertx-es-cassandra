@@ -27,8 +27,12 @@ public abstract class CassandraESVerticle<T> extends AbstractESVerticle<T> {
 	public JsonObject config() {
 		JsonObject cfg = new JsonObject().put("keyspace", "ioswarm").put("host", "localhost");
 		Config conf = ConfigFactory.load().getConfig("ioswarm.eventsourcing.cassandra");
-		if (conf.hasPath("hosts")) cfg.put("hosts", conf.getString("hosts"));
-		else if (conf.hasPath("host")) cfg.put("host", conf.getString("host"));
+		if (conf.hasPath("hosts")) {
+			JsonArray hosts = new JsonArray();
+			for (String h : conf.getString("hosts").split(","))
+				hosts.add(h);
+			cfg.put("hosts", hosts);
+		} else if (conf.hasPath("host")) cfg.put("host", conf.getString("host"));
 		if (conf.hasPath("keyspace")) cfg.put("keyspace", conf.getString("keyspace"));
 		return  cfg;
 	}
